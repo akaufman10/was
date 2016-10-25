@@ -260,73 +260,118 @@ class textFile(object):
             self.data.append(table) #add the table to the self.data list
                 
     def joinTables(self,joinTables = None, joinKeys = None, newTableNames = None):
+        '''
+        join tables together that are printed on separate lines.
+        this join is really just a horizontal append
+        '''
+        
+        #loop through the list of tables to join
         for t in range(len(joinTables)):
             joinTableNames = joinTables[t]
             joinKey        = joinKeys[t]
             newTableName   = newTableNames[t]
+            
+            #if the join tables objects were already assigned, extract them 
             if not joinTableNames or not joinKey:
                 try:
                     joinTableNames = self.joinTableNames
                     joinKey = self.joinKey
                 except NameError as err:
                     print(err + ': join table info was not passed to this Text file' )
-            
+
+            #make an empty list to hold the index of tables to be joined            
             toJoin = []
             for i, table in enumerate(self.tableNames):
                 for j, joinTable in enumerate(joinTableNames):
                     if table == joinTable:
-                        toJoin.append(i)
+                        toJoin.append(i) # add the index for each table that should be joined
             
-            for i in toJoin:
+            #loop through the index of tables to be joined
+            for i in toJoin: 
+                
+                #end the loop on when it reaches the index for the last table
                 if i != toJoin[-1]:
-                    del self.data[i+1]['scenario']
-                    self.data[i+1] = pd.merge(self.data[i],self.data[i+1],on=joinKey)
+                    
+                    del self.data[i+1]['scenario'] #remove the scenario variable from the table to join
+                    self.data[i+1] = pd.merge(self.data[i],self.data[i+1],on=joinKey) #join the current table to the next table in the index
+            
+            #loop through the index of tables to be joined, but in reverse order                      
             for i in reversed(toJoin):
+
+            #for all tables but the last in the index
                 if i != toJoin[-1]:
-                    del self.data[i]
-                    del self.tableNames[i]
+                    
+                    del self.data[i] #delete each table that was already joined
+                    del self.tableNames[i] #delete the name for each table that was already joined
+                
+                #for the final table
                 else:
-                    if newTableName is not None:
+                    if newTableName is not None:  #check if there is a new table name and use it for the combined table
                         self.tableNames[i] = newTableName
 
     def appendTables(self,appendTableNames = None, newTableName = None):
         
+        #if the append tables objects were already assigned, extract them 
         if not appendTableNames:
             try:
                 appendTableNames = self.appendTableNames
             except NameError as err:
                 print(err + ': join table info was not passed to this Text file' )
-                            
-        toAppend = []        
+        
+        #make an empty list to hold the index of tables to be joined 
+        toAppend = []     
+
+         #loop through the index of tables to be appended
         for i, table in enumerate(self.tableNames):
             for j, appendTable in enumerate(appendTableNames):
                 if table == appendTable:
-                    toAppend.append(i)
-                    
+                    toAppend.append(i) # add the index for each table that should be appended
+
+        #loop through the index of tables to be appended            
         for i,j in enumerate(toAppend):
-            self.data[j]['subTable'] = appendTableNames[i]
+            self.data[j]['subTable'] = appendTableNames[i] # add a column with the original table's name
 
+        #loop through the index of tables to be appended in reverse
         for i in reversed(toAppend):
-            if i != toAppend[-1]:
-                self.data[toAppend[-1]] = self.data[toAppend[-1]].append(self.data[i])
+            
+            #skip the last table in the index
+            if i != toAppend[-1]: 
+                
+                self.data[toAppend[-1]] = self.data[toAppend[-1]].append(self.data[i]) #append the current table to the next table in the index 
 
+        #loop through the index of tables to be appended in reverse again now that appends are completed
         for i in reversed(toAppend):
-            if i != toAppend[-1]:
-                del self.data[i]
-                del self.tableNames[i]
+            
+            #for all tables but the last in the index
+            if i != toAppend[-1]: 
+                
+                del self.data[i] #delete each table that was already appended
+                del self.tableNames[i] #delete the name for each table that was already appended
+            
+            #for the final table        
             else:
                 if newTableName is not None:
-                    self.tableNames[i] = newTableName
+                    self.tableNames[i] = newTableName #check if there is a new table name and use it for the combines table
 
 
     def writeData(self, database = None):
+        '''
+        write each dataframe in the list self.data to a sql database
+        '''
+
+        #assign the connection so it can be used easily if needed
         self.conn = database
+        
+        #make sure that its the right type of sql database
         if not isinstance(database, sqlite3.Connection):
             raise TypeError('database must be a connection to a sqlite3 database')
+
+        #loop through each table in the textfile
         for i in range(len(self.tableNames)):
-            try:
+            
+            try: #try writing the data to the database
                 self.data[i].to_sql(self.tableNames[i], self.conn, if_exists='append', index=False)
-            except sqlite3.OperationalError:
+            except sqlite3.OperationalError: #this is a hack: since sqllite cannot append tables with different numbers of columns, I just drop the offending column
                 del self.data[i]['TS-GC'] 
                 self.data[i].to_sql(self.tableNames[i], self.conn, if_exists='append', index=False)
         self.conn.commit()
