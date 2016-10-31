@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[11]:
+# In[1]:
 
 from __future__ import division
 
@@ -12,6 +12,7 @@ from scipy.integrate import quad
 from copy import copy, deepcopy
 from scipy import optimize as opt
 import numpy as np
+from array import array
 import matplotlib.pyplot as plt
 from ipywidgets import interact, interactive, fixed
 import ipywidgets as widgets
@@ -148,7 +149,7 @@ class market(object):
         
 
 
-# In[19]:
+# In[36]:
 
 class scenarioSimulator(object):
     
@@ -194,6 +195,31 @@ class scenarioSimulator(object):
                                     'ls'     :  'dashed',
                                     'color'  :  'black'
                                     }
+        
+    @staticmethod
+    def capExpObjectiveFunc(split_points,*params):
+        
+        q_pct, budget_split = split_points
+        market, otherMarket, totalSupply, budget = params
+        
+        shift = (budget * budget_split, budget * (1-budget_split))
+
+        supplyShiftMarket = deepcopy(market)
+        otherSupplyShiftMarket = deepcopy(otherMarket)
+            
+        for plotNum, market in enumerate([supplyShiftMarket,otherSupplyShiftMarket]):
+            market.supplyFunc.interval_points = [(i,j+shift[plotNum]) for i,j in market.supplyFunc.interval_points] 
+            market.findEQ()
+            
+        
+        surplusEquation1 = lambda q: supplyShiftMarket.demandFunc.invDemand(q) - supplyShiftMarket.supplyFunc.invSupply(q)
+        surplusEquation2 = lambda q: otherSupplyShiftMarket.demandFunc.invDemand(q) - otherSupplyShiftMarket.supplyFunc.invSupply(q)
+        
+        intDemand1 = lambda q: quad(surplusEquation1, 1, q)[0] # + supplyShiftMarket.demandFunc.invDemand(q)
+        intDemand2 = lambda q: quad(surplusEquation2, 1, q)[0] # + otherSupplyShiftMarket.demandFunc.invDemand(q)
+
+        invConsumerSurplus =  -1*(intDemand1(q_pct*totalSupply) + intDemand2((1-q_pct)*totalSupply))
+        return invConsumerSurplus
          
     def plotDemand(self,ax):
         return ax.plot(self.grid, self.market.demandFunc.invDemandCurve(self.grid), label = 'demand', **self.linesize)
@@ -207,7 +233,7 @@ class scenarioSimulator(object):
         yLine  = lambda q : 0
         intervalPoints = np.arange(0,qLevel, interval)
         points = [qLevel] * 50
-        self.plotPoints[0]['quantity purchased'] = (points, np.linspace(0, self.market.demandFunc.invDemand(qLevel),50).tolist())
+        self.plotPoints[0]['quantity consumed'] = (points, np.linspace(0, self.market.demandFunc.invDemand(qLevel),50).tolist())
 
         for i in intervalPoints:
             pointList = [np.array([i,i+interval]), np.linspace(i,i+interval,200,endpoint=True)]
@@ -339,11 +365,13 @@ class scenarioSimulator(object):
         points = [i for i in self.grid if i < self.market.demandFunc.demand(price)]
         self.plotPoints[0]['price'] = (points,[price]*len(points))
         
-    def drawQuantity(self,quantity):
+    def drawQuantity(self,quantity,annotate=False):
         
         self.drawFigure(priceLevel = self.market.demandFunc.invDemand(quantity),EQ=False)
         points = [quantity] * 50
         self.plotPoints[0]['quantity'] = (points, np.linspace(0, self.market.demandFunc.invDemand(quantity),50).tolist())
+        if annotate:
+            self.annotate()
         
     def drawDemand(self, demandShift = None, annotate = False, subsidy = None):
         
@@ -351,6 +379,7 @@ class scenarioSimulator(object):
             self.subsidy = True
             demandShift = subsidy
         
+        title = "Aggregate Demand for Water"
         self.drawFigure(noSupply=True, EQ=False, drawSurplus = False, demandShift = demandShift)
         try:
             del self.plotPoints[0]['equilibrium']
@@ -425,32 +454,6 @@ class scenarioSimulator(object):
         else:
             
             self.fig.suptitle('User Controlled Capital Expenditure Tradeoff')
-            
-            
-    @staticmethod
-    def capExpObjectiveFunc(split_points,*params):
-        
-        q_pct, budget_split = split_points
-        market, otherMarket, totalSupply, budget = params
-        
-        shift = (budget * budget_split, budget * (1-budget_split))
-
-        supplyShiftMarket = deepcopy(market)
-        otherSupplyShiftMarket = deepcopy(otherMarket)
-            
-        for plotNum, market in enumerate([supplyShiftMarket,otherSupplyShiftMarket]):
-            market.supplyFunc.interval_points = [(i,j+shift[plotNum]) for i,j in market.supplyFunc.interval_points] 
-            market.findEQ()
-            
-        
-        surplusEquation1 = lambda q: supplyShiftMarket.demandFunc.invDemand(q) - supplyShiftMarket.supplyFunc.invSupply(q)
-        surplusEquation2 = lambda q: otherSupplyShiftMarket.demandFunc.invDemand(q) - otherSupplyShiftMarket.supplyFunc.invSupply(q)
-        
-        intDemand1 = lambda q: quad(surplusEquation1, 1, q)[0] # + supplyShiftMarket.demandFunc.invDemand(q)
-        intDemand2 = lambda q: quad(surplusEquation2, 1, q)[0] # + otherSupplyShiftMarket.demandFunc.invDemand(q)
-
-        invConsumerSurplus =  -1*(intDemand1(q_pct*totalSupply) + intDemand2((1-q_pct)*totalSupply))
-        return invConsumerSurplus
         
     def drawPopulationShift(self,size,away=False):
         
@@ -476,8 +479,8 @@ class scenarioSimulator(object):
         result = opt.brute(objectiveFunction,((.001,.999), ),full_output=True,finish=opt.fmin)
         self.drawTradeoff(totalSupply,result[0],otherMarket = otherMarket)
         
-    def drawTradeoff(self,totalSupply,firstMarketFrac,otherMarket = None):
-        
+    def drawTradeoff(self,totalSupply,firstMarketFrac,otherMarket = None,annotate=False):
+                
         if firstMarketFrac < 0 or firstMarketFrac > 1:
             raise ValueError('Input must be numeric between 0 and 1 inclusive.')
         quant1 = totalSupply * firstMarketFrac
@@ -498,6 +501,8 @@ class scenarioSimulator(object):
         self.plotPoints[0]['Marginal Surplus: ' + str(marginal_surplus1)] = ([quant1] * 50,np.linspace(q_level1,price1, 50).tolist())
         self.plotPoints[1]['Marginal Surplus: ' + str(marginal_surplus2)] = ([quant2] * 50,np.linspace(q_level2,price2, 50).tolist())
         
+        if annotate:
+            self.annotate()
         
     def drawFigure(self, numPlots=1, EQ = True, **kwargs):
         fig, ax_array = plt.subplots(1, numPlots,figsize = (5*numPlots,5),sharey=True)
@@ -525,7 +530,10 @@ class scenarioSimulator(object):
             if kwargs['otherMarket'] is not None:
                 self.market = deepcopy(self.tempMarket)
         self.fig=fig
-
+        if 'annotate' in [key for key, value in kwargs.iteritems()]:
+            if kwargs['annotate'] is True:
+                self.annotate()
+        
         
     def drawAxes(self,ax,showSurplus=True, supplyShift = None, demandShift = None, households = None, noSupply = False, **kwargs):
         
@@ -557,8 +565,8 @@ class scenarioSimulator(object):
             self.plotDemandShift(ax, plotNum = plotNum, demandShift=demandShift)
         if showSurplus:
             if not EQ:
-                self.plotSurplus(ax,price=array(priceLevel))
-                title = 'Constrained Water Markets'
+                self.plotSurplus(ax,price=np.array(priceLevel))
+                title = 'Constrained Water Market ' + str(plotNum)
                 self.titlefont['size']=12
             else:
                 self.plotDemandChangeSurplus(ax, demandShift=demandShift)
@@ -575,7 +583,7 @@ class scenarioSimulator(object):
         
 
 
-# In[20]:
+# In[29]:
 
 
 #test params
@@ -591,17 +599,18 @@ lowAltMarket = market(demandFunc(**demand_parameters), supplyFunc(highlandsSuppl
 graphMaker = scenarioSimulator(Market)
 
 
-# In[21]:
+# In[30]:
 
 if __name__ == '__main__':
 
     #test graphs
-
+    '''
+    graphMaker.drawFigure(annotate=True)
+    
     graphMaker.drawDemand()
     
     graphMaker.drawDemand(subsidy = 3, annotate = True)
-
-    '''
+    
     graphMaker.drawPrice(5)
     graphMaker.annotate()
 
@@ -640,10 +649,10 @@ if __name__ == '__main__':
 
     graphMaker.drawFigure(drawSurplus = False)
     graphMaker.annotate()
-
+    
     graphMaker.drawTradeoff(4,.4)
     graphMaker.annotate()
-
+    
     graphMaker.drawShifts()
     graphMaker.annotate()
 
@@ -653,7 +662,37 @@ if __name__ == '__main__':
     interact(graphMaker.drawPrice,price=(1,10,.1))
     interact(graphMaker.drawOptimalTradeoff,totalSupply=(1,6,.2), otherMarket=fixed(lowAltMarket))
     interact(graphMaker.drawTradeoff,totalSupply=(1,6,.2), firstMarketFrac=(.001,.999,.1),otherMarket=fixed(lowAltMarket))
-    
+    '''
+
+
+# In[33]:
+
+# functions for interactive graphs
+
+def buildSupplyPoints(width, height, steps):
+    supplyPoints = [(0,height)] 
+    supplyPoints.extend([(supplyPoints[0][0]+width*(i+1),supplyPoints[0][1]+height*(i+1)) for i in range(int(steps/width))])
+    return supplyPoints
+
+def makeTupples(kwargDict):
+    mixMaxRangeTupples = {}
+    for k,v in kwargDict.iteritems():
+        try:
+            mixMaxRangeTupples[k]=(v-2*v,v+2*v,v/50)
+        except TypeError:
+            continue
+    return mixMaxRangeTupples
+
+def avoidNull(simulatorObjFunc,*args):
+    return simulatorObjFunc(*args)
+
+
+
+
+# In[ ]:
+
+
+    '''
     kwargDict = {
              'optimize':'True', 
              'waterSupply':4,
@@ -678,22 +717,7 @@ if __name__ == '__main__':
                  'demandChangeM':1,
                  'demandChangeE':.1,
                 }
-
-
-    def buildSupplyPoints(width, height, steps):
-        supplyPoints = [(0,height)] 
-        supplyPoints.extend([(supplyPoints[0][0]+width*(i+1),supplyPoints[0][1]+height*(i+1)) for i in range(int(steps/width))])
-        return supplyPoints
-
-    def makeTupples(kwargDict):
-        mixMaxRangeTupples = {}
-        for k,v in kwargDict.iteritems():
-            try:
-                mixMaxRangeTupples[k]=(v-2*v,v+2*v,v/50)
-            except TypeError:
-                continue
-        return mixMaxRangeTupples
-
+    
     @interact(**makeTupples(kwargDict))
     def compareMarketsSimple(optimize=('True','False'),waterSharePct=None,waterSupply=None,supplyChange=None,demandChange=None):
         supplyLevels = buildSupplyPoints(2,2,8)
@@ -711,7 +735,7 @@ if __name__ == '__main__':
     '''
 
 
-# In[ ]:
+# In[37]:
 
 get_ipython().system(u'jupyter nbconvert --to script EconGraphs.ipynb')
 
