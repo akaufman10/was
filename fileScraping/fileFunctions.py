@@ -4,12 +4,13 @@ Created on Tue Oct 18 23:36:47 2016
 
 @author: alex
 """
-import weakref
+
 import pandas as pd
 import sqlite3
 import re
 from copy import copy
 import collections
+import os
 
 
 def stripFileData(filesToUse, fileList):
@@ -354,29 +355,47 @@ class textFile(object):
                     self.tableNames[i] = newTableName #check if there is a new table name and use it for the combines table
 
 
-    def writeData(self, database = None):
+    def writeData(self, sql = True, database = None):
         '''
-        write each dataframe in the list self.data to a sql database
+        write each dataframe in the list self.data to a sql database or to an excel sheet
         '''
-
-        #assign the connection so it can be used easily if needed
-        self.conn = database
+        if sql is True:
+            
+            #assign the connection so it can be used easily if needed
+            self.conn = database
+            
+            #make sure that its the right type of sql database
+            if not isinstance(database, sqlite3.Connection):
+                raise TypeError('database must be a connection to a sqlite3 database')
+    
+            #loop through each table in the textfile
+            for i in range(len(self.tableNames)):
+                
+                try: #try writing the data to the database
+                    self.data[i].to_sql(self.tableNames[i], self.conn, if_exists='append', index=False)
+                except sqlite3.OperationalError: #this is a hack: since sqllite cannot append tables with different numbers of columns, I just drop the offending column
+                    del self.data[i]['TS-GC'] 
+                    self.data[i].to_sql(self.tableNames[i], self.conn, if_exists='append', index=False)
+            self.conn.commit()
         
-        #make sure that its the right type of sql database
-        if not isinstance(database, sqlite3.Connection):
-            raise TypeError('database must be a connection to a sqlite3 database')
-
+        #create the excel_files folder if it does not exsist
+        if not os.path.exists('./excel_files'):
+            os.makedirs('./excel_files')
+        
         #loop through each table in the textfile
         for i in range(len(self.tableNames)):
-            
-            try: #try writing the data to the database
-                self.data[i].to_sql(self.tableNames[i], self.conn, if_exists='append', index=False)
-            except sqlite3.OperationalError: #this is a hack: since sqllite cannot append tables with different numbers of columns, I just drop the offending column
-                del self.data[i]['TS-GC'] 
-                self.data[i].to_sql(self.tableNames[i], self.conn, if_exists='append', index=False)
-        self.conn.commit()
         
+            fileName = './excel_files/' + self.tableNames[i] + '.csv'                
+        
+            #check if the file exists yet, and if not, write the data as the file with columns as headers
+            if not os.path.isfile(fileName):
+                self.data[i].to_csv(fileName, mode='a',index=False)
+            #make sure columns align
+            elif len(self.data[i].columns) != len(pd.read_csv(fileName, nrows=1).columns):
+                print(self.tableNames[i])
+                del self.data[i]['TS-GC'] #repeat the hack that was used for the SQL step, for consistency                
+                self.data[i].to_csv(fileName, mode='a', index=False)
+            else: #append the data to the file
+                self.data[i].to_csv(fileName, mode='a', index=False, header=False)
 
-                
-                
                 
