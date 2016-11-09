@@ -1,6 +1,0 @@
-ipywidgets
-scipy
-numpy
-array
-copy
-matplotlib

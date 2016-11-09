@@ -1,0 +1,17 @@
+name: example-environment
+
+dependencies:
+  - python=2.7
+  - numpy
+  - toolz
+  - matplotlib
+  - dill
+  - pandas
+  - partd
+  - bokeh
+  - ipywidgets
+  - scipy
+  - numpy
+  - array
+  - copy
+  - matplotlib
