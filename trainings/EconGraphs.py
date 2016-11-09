@@ -149,7 +149,7 @@ class market(object):
         
 
 
-# In[36]:
+# In[45]:
 
 class scenarioSimulator(object):
     
@@ -359,11 +359,23 @@ class scenarioSimulator(object):
                 ax.text(value[0][-1], value[1][-1], str(key), **self.labelfont)
         self.plotPoints = [{'equilibrium' : (self.market.equilibriumQ, self.market.equilibriumP)}, {}]
                 
-    def drawPrice(self,price):
+    def drawShadowValue(self,quantity, scarcityRent = False, annotate=False):
         
-        self.drawFigure(priceLevel = price,EQ = False)
-        points = [i for i in self.grid if i < self.market.demandFunc.demand(price)]
-        self.plotPoints[0]['price'] = (points,[price]*len(points))
+        priceLevel = self.market.demandFunc.invDemand(quantity)
+        
+        if scarcityRent:
+            self.drawFigure(drawSurplus = True, priceLevel = priceLevel, EQ = False)
+        else:
+            self.drawFigure(drawSurplus = False, priceLevel = priceLevel, EQ = False)
+
+        points = [quantity] * 50
+        
+        if annotate:
+            if scarcityRent:
+                self.plotPoints[0]['scarcity rent'] = (points, np.linspace(self.market.supplyFunc.invSupply(quantity),priceLevel,50).tolist())            
+            else:
+                self.plotPoints[0]['shadow price']  = (points, np.linspace(0, priceLevel,50).tolist())
+            self.annotate()
         
     def drawQuantity(self,quantity,annotate=False):
         
@@ -453,7 +465,7 @@ class scenarioSimulator(object):
 
         else:
             
-            self.fig.suptitle('User Controlled Capital Expenditure Tradeoff')
+            self.fig.suptitle('Capital Expenditure Tradeoff')
         
     def drawPopulationShift(self,size,away=False):
         
@@ -465,7 +477,7 @@ class scenarioSimulator(object):
         self.drawFigure(demandShift1=demandShift1,demandShift2=demandShift2,numPlots=2,otherMarket=None,
                       priceLevel=None,price2=None)
         
-    def drawOptimalTradeoff(self,totalSupply,otherMarket = None):
+    def drawOptimalTradeoff(self,totalSupply,otherMarket = None, annotate = False):
         #need to add back integrals for Q < 1 for precise calculation - but this is still OK for graphing!
         if self.market.equilibriumQ + otherMarket.equilibriumQ <= totalSupply:
             raise ValueError('totalSupply is too large, there is no constraint!')
@@ -477,7 +489,13 @@ class scenarioSimulator(object):
         
         objectiveFunction = lambda q_pct : -1*(intDemand1(q_pct*totalSupply) + intDemand2((1-q_pct)*totalSupply))
         result = opt.brute(objectiveFunction,((.001,.999), ),full_output=True,finish=opt.fmin)
-        self.drawTradeoff(totalSupply,result[0],otherMarket = otherMarket)
+        self.drawTradeoff(totalSupply,result[0][0],otherMarket = otherMarket)
+        
+        if self.fig._suptitle is None:
+            self.fig.suptitle('Optimal Regional Water Tradeoff', fontsize=14)
+        
+        if annotate:
+            self.annotate()
         
     def drawTradeoff(self,totalSupply,firstMarketFrac,otherMarket = None,annotate=False):
                 
@@ -501,6 +519,9 @@ class scenarioSimulator(object):
         self.plotPoints[0]['Marginal Surplus: ' + str(marginal_surplus1)] = ([quant1] * 50,np.linspace(q_level1,price1, 50).tolist())
         self.plotPoints[1]['Marginal Surplus: ' + str(marginal_surplus2)] = ([quant2] * 50,np.linspace(q_level2,price2, 50).tolist())
         
+        if self.fig._suptitle is None:
+            self.fig.suptitle('Regional Water Tradeoff', fontsize=14)
+            
         if annotate:
             self.annotate()
         
@@ -545,7 +566,7 @@ class scenarioSimulator(object):
                 continue
         
         if 'drawSurplus' in locals():
-            showSurplus = False
+            showSurplus = drawSurplus
         
         #set up titles / markings for graph
         title = 'Supply and Demand for Water'
@@ -566,12 +587,12 @@ class scenarioSimulator(object):
         if showSurplus:
             if not EQ:
                 self.plotSurplus(ax,price=np.array(priceLevel))
-                title = 'Constrained Water Market ' + str(plotNum)
+                title = 'Water Constraints in Region ' + str(plotNum)
                 self.titlefont['size']=12
             else:
                 self.plotDemandChangeSurplus(ax, demandShift=demandShift)
                 self.plotSupplyChangeSurplus(ax, supplyShift=supplyShift)
-                title = 'Water Market Shift'
+                title = 'InterRegional Water Allocation'
                 self.plotSurplus(ax, price = self.market.equilibriumP)
         
         ax.set_title(title, fontdict=self.titlefont) 
@@ -583,23 +604,25 @@ class scenarioSimulator(object):
         
 
 
-# In[29]:
+# In[46]:
 
 
 #test params
 
-supplyLevels = [(0,2),(3,4),(6,7)]
-highlandsSupplyLevels = [(i,j+3) for i,j in supplyLevels]
+supplyLevels           = [(1,2),(3,4),(6,7)]
+highlandsSupplyLevels  = [(i,j+3) for i,j in supplyLevels]
+springAreaSupplyLevels = [(i,j-1) for i,j in supplyLevels]
 demand_parameters = {'multiplier':7,'elasticity':.7}
 alt_demand_parameters = {'multiplier':6,'elasticity':.7}
 
 #test objects
 Market = market(demandFunc(**demand_parameters), supplyFunc(supplyLevels))
-lowAltMarket = market(demandFunc(**demand_parameters), supplyFunc(highlandsSupplyLevels))
+highAltMarket = market(demandFunc(**demand_parameters), supplyFunc(highlandsSupplyLevels))
+springMarket = market(demandFunc(**demand_parameters), supplyFunc(springAreaSupplyLevels))
 graphMaker = scenarioSimulator(Market)
 
 
-# In[30]:
+# In[51]:
 
 if __name__ == '__main__':
 
@@ -610,10 +633,10 @@ if __name__ == '__main__':
     graphMaker.drawDemand()
     
     graphMaker.drawDemand(subsidy = 3, annotate = True)
-    
-    graphMaker.drawPrice(5)
-    graphMaker.annotate()
+    '''
+    graphMaker.drawShadowValue(2, scarcityRent=False, annotate=True)
 
+    '''
     graphMaker.drawQuantity(2.5)
     graphMaker.annotate()
 
@@ -640,10 +663,10 @@ if __name__ == '__main__':
 
     graphMaker.drawCapitalExpTradeoff(1,.2,totalSupply = 4, q_split = .6, otherMarket=lowAltMarket)
     graphMaker.annotate()
-
+    
     graphMaker.drawOptimalTradeoff(4, otherMarket=Market)
     graphMaker.annotate()
-
+    
     graphMaker.drawCapitalExpTradeoff(1, .4, totalSupply = 4, otherMarket = lowAltMarket, optimize=True)
     graphMaker.annotate()
 
@@ -665,7 +688,7 @@ if __name__ == '__main__':
     '''
 
 
-# In[33]:
+# In[ ]:
 
 # functions for interactive graphs
 
@@ -692,7 +715,7 @@ def avoidNull(simulatorObjFunc,*args):
 # In[ ]:
 
 
-    '''
+'''
     kwargDict = {
              'optimize':'True', 
              'waterSupply':4,
@@ -732,7 +755,7 @@ def avoidNull(simulatorObjFunc,*args):
         else:
             graphMaker.drawTradeoff(waterSupply,waterSharePct, otherMarket=newMarket)
 
-    '''
+'''
 
 
 # In[38]:
