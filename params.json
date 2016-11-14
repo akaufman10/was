@@ -1,6 +1,6 @@
 {
-  "name": "Water Allocation System",
-  "tagline": "(launch page)",
-  "body": "# Click below to launch tutorial page\r\n\r\n[![Binder](http://mybinder.org/badge.svg)](http://mybinder.org:/repo/akaufman10/was)\r\n\r\n",
+  "name": "Water Allocation System Tutorial",
+  "tagline": "click Launch Binder (to the right)",
+  "body": "[![Binder](http://mybinder.org/badge.svg)](http://mybinder.org:/repo/akaufman10/was)\r\n\r\n",
   "note": "Don't delete this file! It's used internally to help with page regeneration."
 }
