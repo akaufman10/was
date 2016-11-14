@@ -1,6 +1,6 @@
 {
   "name": "Water Allocation System",
   "tagline": "(launch page)",
-  "body": "Click below to launch tutorial apge\r\n[![Binder](http://mybinder.org/badge.svg)](http://mybinder.org:/repo/akaufman10/was)",
+  "body": "<style>\r\n  .markdown-body table td {\r\n    font-size: 20px !important;\r\n  }\r\n</style>\r\n\r\nClick below to launch tutorial page\r\n\r\n[![Binder](http://mybinder.org/badge.svg)](http://mybinder.org:/repo/akaufman10/was)\r\n\r\n",
   "note": "Don't delete this file! It's used internally to help with page regeneration."
 }
