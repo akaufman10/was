@@ -758,7 +758,7 @@ def avoidNull(simulatorObjFunc,*args):
 '''
 
 
-# In[52]:
+# In[38]:
 
 get_ipython().system(u'jupyter nbconvert --to script EconGraphs.ipynb')
 
