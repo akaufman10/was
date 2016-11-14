@@ -4,7 +4,7 @@ MAINTAINER Alex Kaufman <akaufman10@gmail.com>
 
 USER root
 
-# Add dependency
+# Add custom package
 RUN setup.py install
 
 USER main
