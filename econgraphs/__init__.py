@@ -761,4 +761,5 @@ def avoidNull(simulatorObjFunc,*args):
 # In[52]:
 
 get_ipython().system(u'jupyter nbconvert --to script EconGraphs.ipynb')
+get_ipython().system(u'mv EconGraphs.py /home/alex/Documents/Projects/WAS/Code/econgraphs/__init__.py')
 
