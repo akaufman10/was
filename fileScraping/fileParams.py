@@ -6,8 +6,10 @@ Created on Tue Oct 18 23:39:49 2016
 """
 from copy import copy
     
+
 WAS_scenario_directory = '/home/alex/Documents/Shared/WAS & MYWAS/WAS_scenarios'
-data_directory = '/home/alex/Documents/Shared/WAS & MYWAS/Data'
+data_directory = '/home/alex/Documents/Shared/WAS_&_MYWAS/Data'
+code_directory = '/home/alex/Projects/WAS/Code/fileScraping'
 
 databaseName = 'ScenarioData'
 
