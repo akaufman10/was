@@ -1,6 +1,8 @@
 
 # coding: utf-8
 
+# This notebook provides the code used in the EconGraphs module.
+
 # In[1]:
 
 from __future__ import division
@@ -17,27 +19,8 @@ import matplotlib.pyplot as plt
 from ipywidgets import interact, interactive, fixed
 import ipywidgets as widgets
 
-def capExpObjectiveFunc(q_split, budget_split, market, otherMarket, totalSupply):
-    
-        shift = (totalSupply * budget_split, self.totalSupply * (1-budget_split))
-        
-        supplyShiftMarket = deepcopy(self.market)
-        otherSupplyShiftMarket = deepcopy(otherMarket)
-            
-        for plotNum, market in enumerate([supplyShiftMarket,otherSupplyShiftMarket]):
-            market.supplyFunc.interval_points = [(i,j+shift[plotNum]) for i,j in market.supplyFunc.interval_points] 
-            market.findEQ()
-            
-        surplusEquation1 = lambda q: supplyShiftMarket.demandFunc.invDemand(q) - supplyShiftmarket.supplyFunc.invSupply(q)
-        surplusEquation2 = lambda q: otherSupplyShiftMarket.demandFunc.invDemand(q) - otherSupplyShiftMarket.supplyFunc.invSupply(q)
-        
-        intDemand1 = lambda q: quad(surplusEquation1, 1, q)[0] # + supplyShiftMarket.demandFunc.invDemand(q)
-        intDemand2 = lambda q: quad(surplusEquation2, 1, q)[0] # + otherSupplyShiftMarket.demandFunc.invDemand(q)
 
-        invConsumerSurplus =  -1*(intDemand1(q_pct*totalSupply) + intDemand2((1-q_pct)*totalSupply))
-        
-        return invConsumerSurplus
-
+#class holding normal, inverse, and vectorized demand functions
 class demandFunc():
     
     def __init__(self,**params):
@@ -71,7 +54,7 @@ class demandFunc():
         return map(lambda Qvec : self.invDemand(Qvec) + subsidy, Qvec)
 
         
-        
+#class holding normal, inverse, and vectorized supply functions        
 class supplyFunc():
 
     def __init__(self,interval_points):
@@ -114,7 +97,8 @@ class supplyFunc():
         Qvec is a vector of quantities
         '''
         return map(self.invSupply, Qvec)
-    
+
+#objet for interacting/analyzing supply and demand functions
 class market(object):
     
     def __init__(self, demandFunc, supplyFunc):
@@ -149,8 +133,9 @@ class market(object):
         
 
 
-# In[45]:
+# In[18]:
 
+#this object simulates and graphs various market scenarios
 class scenarioSimulator(object):
     
     def __init__(self, market):
@@ -195,7 +180,7 @@ class scenarioSimulator(object):
                                     'ls'     :  'dashed',
                                     'color'  :  'black'
                                     }
-        
+    #describes the social welfare objective function for a capital expenditure variable
     @staticmethod
     def capExpObjectiveFunc(split_points,*params):
         
@@ -308,7 +293,7 @@ class scenarioSimulator(object):
                                 self.grid,
                                 self.market.supplyFunc.invSupplyCurve(self.grid), 
                                 np.minimum(self.supplyShiftMarket.supplyFunc.invSupplyCurve(self.grid),self.market.demandFunc.invDemandCurve(self.grid)),
-                                where = self.market.demandFunc.invDemandCurve(self.grid) > self.supplyShiftMarket.equilibriumP, 
+                                where = self.market.demandFunc.invDemandCurve(self.grid) > self.market.equilibriumP, 
                                 **self.surplusLossParams
                                 )      
             else:  
@@ -604,54 +589,51 @@ class scenarioSimulator(object):
         
 
 
-# In[46]:
+# In[19]:
 
-
-#test params
-
+#example params
 supplyLevels           = [(1,2),(3,4),(6,7)]
 highlandsSupplyLevels  = [(i,j+3) for i,j in supplyLevels]
 springAreaSupplyLevels = [(i,j-1) for i,j in supplyLevels]
 demand_parameters = {'multiplier':7,'elasticity':.7}
 alt_demand_parameters = {'multiplier':6,'elasticity':.7}
 
-#test objects
+#example objects
 Market = market(demandFunc(**demand_parameters), supplyFunc(supplyLevels))
 highAltMarket = market(demandFunc(**demand_parameters), supplyFunc(highlandsSupplyLevels))
 springMarket = market(demandFunc(**demand_parameters), supplyFunc(springAreaSupplyLevels))
 graphMaker = scenarioSimulator(Market)
 
 
-# In[51]:
+# In[25]:
 
 if __name__ == '__main__':
 
     #test graphs
-    '''
+    
     graphMaker.drawFigure(annotate=True)
     
     graphMaker.drawDemand()
     
     graphMaker.drawDemand(subsidy = 3, annotate = True)
-    '''
+    
     graphMaker.drawShadowValue(2, scarcityRent=False, annotate=True)
 
-    '''
     graphMaker.drawQuantity(2.5)
     graphMaker.annotate()
 
     graphMaker.drawDemandShift(4)
     graphMaker.annotate()
-
+    
     graphMaker.drawDemandShift(-2)
     graphMaker.annotate()
-
+    
     graphMaker.drawSupplyShift()
     graphMaker.annotate()
-
-    graphMaker.drawSupplyShift(-2)
+    
+    graphMaker.drawSupplyShift(-1)
     graphMaker.annotate()
-
+    
     graphMaker.drawHouseholds(4)
     graphMaker.annotate()
 
@@ -661,13 +643,13 @@ if __name__ == '__main__':
     graphMaker.drawCapitalExpTradeoff(3,.4,drawEQ=True)
     graphMaker.annotate()
 
-    graphMaker.drawCapitalExpTradeoff(1,.2,totalSupply = 4, q_split = .6, otherMarket=lowAltMarket)
+    graphMaker.drawCapitalExpTradeoff(1,.2,totalSupply = 4, q_split = .6, otherMarket=springMarket)
     graphMaker.annotate()
     
     graphMaker.drawOptimalTradeoff(4, otherMarket=Market)
     graphMaker.annotate()
     
-    graphMaker.drawCapitalExpTradeoff(1, .4, totalSupply = 4, otherMarket = lowAltMarket, optimize=True)
+    graphMaker.drawCapitalExpTradeoff(1, .4, totalSupply = 4, otherMarket = springMarket, optimize=True)
     graphMaker.annotate()
 
     graphMaker.drawFigure(drawSurplus = False)
@@ -679,16 +661,13 @@ if __name__ == '__main__':
     graphMaker.drawShifts()
     graphMaker.annotate()
 
-    graphMaker.drawOptimalTradeoff(4, otherMarket = lowAltMarket)
+    graphMaker.drawOptimalTradeoff(4, otherMarket = springMarket)
     graphMaker.annotate()
-
-    interact(graphMaker.drawPrice,price=(1,10,.1))
-    interact(graphMaker.drawOptimalTradeoff,totalSupply=(1,6,.2), otherMarket=fixed(lowAltMarket))
-    interact(graphMaker.drawTradeoff,totalSupply=(1,6,.2), firstMarketFrac=(.001,.999,.1),otherMarket=fixed(lowAltMarket))
-    '''
+    
+    
 
 
-# In[ ]:
+# In[26]:
 
 # functions for interactive graphs
 
@@ -711,54 +690,50 @@ def avoidNull(simulatorObjFunc,*args):
 
 
 
+# In[28]:
 
-# In[ ]:
+kwargDict = {
+         'optimize':'True', 
+         'waterSupply':4,
+         'waterSharePct':.4,
+         'supplyChange':2,
+         'demandChange':1
+        }
 
 
-'''
-    kwargDict = {
-             'optimize':'True', 
-             'waterSupply':4,
-             'waterSharePct':.4,
+kwargDict1 = {
+             'optimize':'True',
+             'waterSupply':40, 
+             'waterSharePct':.4, 
+             'demandMult1':60,
+             'demandMult2':60,
+             'demandElas1':.6,
+             'demandElas2':.6,
+             'stepWidth1':2,
+             'stepHeight':2,
+             'steps':8,
              'supplyChange':2,
-             'demandChange':1
+             'demandChangeM':1,
+             'demandChangeE':.1,
             }
 
-
-    kwargDict1 = {
-                 'optimize':'True',
-                 'waterSupply':40, 
-                 'waterSharePct':.4, 
-                 'demandMult1':60,
-                 'demandMult2':60,
-                 'demandElas1':.6,
-                 'demandElas2':.6,
-                 'stepWidth1':2,
-                 'stepHeight':2,
-                 'steps':8,
-                 'supplyChange':2,
-                 'demandChangeM':1,
-                 'demandChangeE':.1,
-                }
-    
-    @interact(**makeTupples(kwargDict))
-    def compareMarketsSimple(optimize=('True','False'),waterSharePct=None,waterSupply=None,supplyChange=None,demandChange=None):
-        supplyLevels = buildSupplyPoints(2,2,8)
-        newSupplyLevels = [(i,j+supplyChange) for i,j in supplyLevels]
-        demand_parameters = {'multiplier':6,'elasticity':.6}
-        newDemand_parameters = {'multiplier':6+demandChange,'elasticity':.6}
-        Market = market(demandFunc(**demand_parameters), supplyFunc(supplyLevels))
-        newMarket = market(demandFunc(**newDemand_parameters), supplyFunc(newSupplyLevels))
-        graphMaker = scenarioSimulator(Market)
-        if optimize == 'True':
-            graphMaker.drawOptimalTradeoff(totalSupply = waterSupply, otherMarket=newMarket)
-        else:
-            graphMaker.drawTradeoff(waterSupply,waterSharePct, otherMarket=newMarket)
-
-'''
+@interact(**makeTupples(kwargDict))
+def compareMarketsSimple(optimize=('True','False'),waterSharePct=None,waterSupply=None,supplyChange=None,demandChange=None):
+    supplyLevels = buildSupplyPoints(2,2,8)
+    newSupplyLevels = [(i,j+supplyChange) for i,j in supplyLevels]
+    demand_parameters = {'multiplier':6,'elasticity':.6}
+    newDemand_parameters = {'multiplier':6+demandChange,'elasticity':.6}
+    Market = market(demandFunc(**demand_parameters), supplyFunc(supplyLevels))
+    newMarket = market(demandFunc(**newDemand_parameters), supplyFunc(newSupplyLevels))
+    graphMaker = scenarioSimulator(Market)
+    if optimize == 'True':
+        graphMaker.drawOptimalTradeoff(totalSupply = waterSupply, otherMarket=newMarket)
+    else:
+        graphMaker.drawTradeoff(waterSupply,waterSharePct, otherMarket=newMarket)
 
 
-# In[52]:
+
+# In[29]:
 
 get_ipython().system(u'jupyter nbconvert --to script EconGraphs.ipynb')
 get_ipython().system(u'mv EconGraphs.py /home/alex/Documents/Projects/WAS/Code/econgraphs/__init__.py')
