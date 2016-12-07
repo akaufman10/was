@@ -1,9 +1,9 @@
 
 # coding: utf-8
 
-# This notebook provides the code used in the EconGraphs module.
+# # This notebook provides the code used in the EconGraphs module.
 
-# In[1]:
+# In[10]:
 
 from __future__ import division
 
@@ -133,7 +133,7 @@ class market(object):
         
 
 
-# In[18]:
+# In[176]:
 
 #this object simulates and graphs various market scenarios
 class scenarioSimulator(object):
@@ -266,9 +266,31 @@ class scenarioSimulator(object):
             self.demandShiftPlot   = self.demandShiftMarket.demandFunc.invDemandCurveSubs(self.grid, demandShift)
         ax.plot(self.grid, self.demandShiftPlot, label = 'new demand', **self.linesize)
     
-    def plotSupplyShift(self,ax,supplyShift = None, plotNum = 1):
+    def plotSupplyShift(self,ax,supplyShift = None, intervals = None, newPoint = None, replacePoint = None, plotNum = 1):
         self.supplyShiftMarket = deepcopy(self.market)
-        self.supplyShiftMarket.supplyFunc.interval_points = [(i,j+supplyShift) for i,j in self.market.supplyFunc.interval_points] 
+        if intervals:
+            newPoints = []
+            intervalCounter = 0
+            for x,y in enumerate(self.market.supplyFunc.interval_points):
+                if x in intervals:
+                    newPoints.append((y[0],y[1]+supplyShift[intervalCounter]))
+                    intervalCounter += 1
+                else:
+                    newPoints.append(y)
+            self.supplyShiftMarket.supplyFunc.interval_points = newPoints
+        elif newPoint:
+            newPoints = copy(self.market.supplyFunc.interval_points)
+            currentLevel = newPoints[0][0]
+            for points in newPoints:
+                if newPoint[0] > points[1]:
+                    break
+                currentLevel = points[0]-.01
+            newPoints.append((currentLevel,newPoint[0]))
+            newPoints.sort(reverse=True)
+            newPoints = [(i+newPoint[1],j) if i > currentLevel else (i,j) for i,j in newPoints]
+            self.supplyShiftMarket.supplyFunc.interval_points = newPoints 
+        else:
+            self.supplyShiftMarket.supplyFunc.interval_points = [(i,j+supplyShift) for i,j in self.market.supplyFunc.interval_points] 
         self.supplyShiftMarket.findEQ()
         self.plotPoints[plotNum - 1]['new equilibrium'] = ((self.supplyShiftMarket.equilibriumQ, self.supplyShiftMarket.equilibriumP))
         self.supplyShiftPlot   = self.supplyShiftMarket.supplyFunc.invSupplyCurve(self.grid)
@@ -397,9 +419,15 @@ class scenarioSimulator(object):
         if annotate:
             self.annotate()
         
-    def drawSupplyShift(self, shift = 1):
+    def drawSupplyShift(self, shift = 1, intervals = None, newPoint = None, replacePoint = None):
         
-        self.drawFigure(supplyShift=shift)
+        if intervals:
+            self.drawFigure(supplyShift=shift,intervals = intervals)
+        elif newPoint:
+            self.drawFigure(supplyShift=shift,newPoint = newPoint, replacePoint = replacePoint)
+        else:
+            self.drawFigure(supplyShift=shift,intervals = None)
+        
     
     def drawDemandShift(self,shift=1):
         
@@ -472,13 +500,14 @@ class scenarioSimulator(object):
         intDemand1 = lambda q: quad(surplusEquation1, 1, q)[0] # + self.market.demandFunc.invDemand(q)
         intDemand2 = lambda q: quad(surplusEquation2, 1, q)[0] # + otherMarket.demandFunc.invDemand(q)
         
+        if self.fig._suptitle is None:
+            self.fig.suptitle('Optimal Regional Water Tradeoff', fontsize=14)
+
+        
         objectiveFunction = lambda q_pct : -1*(intDemand1(q_pct*totalSupply) + intDemand2((1-q_pct)*totalSupply))
         result = opt.brute(objectiveFunction,((.001,.999), ),full_output=True,finish=opt.fmin)
         self.drawTradeoff(totalSupply,result[0][0],otherMarket = otherMarket)
-        
-        if self.fig._suptitle is None:
-            self.fig.suptitle('Optimal Regional Water Tradeoff', fontsize=14)
-        
+                
         if annotate:
             self.annotate()
         
@@ -553,6 +582,12 @@ class scenarioSimulator(object):
         if 'drawSurplus' in locals():
             showSurplus = drawSurplus
         
+        for var in ['intervals','newPoint','replacePoint']:
+            if var in locals():
+                pass
+            else:
+                exec('%s = None' % (var))
+                
         #set up titles / markings for graph
         title = 'Supply and Demand for Water'
         xlab = 'Quantity of Water (Mcm/capita)'
@@ -566,7 +601,7 @@ class scenarioSimulator(object):
             if not noSupply:
                 self.plotSupply(ax)
         if supplyShift:
-            self.plotSupplyShift(ax, plotNum = plotNum, supplyShift=supplyShift)
+            self.plotSupplyShift(ax, plotNum = plotNum, supplyShift=supplyShift, intervals = intervals, newPoint = newPoint, replacePoint = replacePoint)
         if demandShift:
             self.plotDemandShift(ax, plotNum = plotNum, demandShift=demandShift)
         if showSurplus:
@@ -576,6 +611,8 @@ class scenarioSimulator(object):
                 self.titlefont['size']=12
             else:
                 self.plotDemandChangeSurplus(ax, demandShift=demandShift)
+                if newPoint:
+                    supplyShift = -1
                 self.plotSupplyChangeSurplus(ax, supplyShift=supplyShift)
                 title = 'InterRegional Water Allocation'
                 self.plotSurplus(ax, price = self.market.equilibriumP)
@@ -589,7 +626,7 @@ class scenarioSimulator(object):
         
 
 
-# In[19]:
+# In[171]:
 
 #example params
 supplyLevels           = [(1,2),(3,4),(6,7)]
@@ -605,12 +642,12 @@ springMarket = market(demandFunc(**demand_parameters), supplyFunc(springAreaSupp
 graphMaker = scenarioSimulator(Market)
 
 
-# In[25]:
+# In[172]:
 
 if __name__ == '__main__':
 
     #test graphs
-    
+    '''
     graphMaker.drawFigure(annotate=True)
     
     graphMaker.drawDemand()
@@ -633,7 +670,14 @@ if __name__ == '__main__':
     
     graphMaker.drawSupplyShift(-1)
     graphMaker.annotate()
-    
+    '''
+    graphMaker.drawSupplyShift([2],[1])
+    graphMaker.annotate()
+
+    graphMaker.drawSupplyShift(newPoint = (3,1))
+    graphMaker.annotate()
+
+    '''
     graphMaker.drawHouseholds(4)
     graphMaker.annotate()
 
@@ -663,7 +707,7 @@ if __name__ == '__main__':
 
     graphMaker.drawOptimalTradeoff(4, otherMarket = springMarket)
     graphMaker.annotate()
-    
+    '''
     
 
 
@@ -733,8 +777,11 @@ def compareMarketsSimple(optimize=('True','False'),waterSharePct=None,waterSuppl
 
 
 
-# In[29]:
+# In[175]:
 
-get_ipython().system(u'jupyter nbconvert --to script EconGraphs.ipynb')
-get_ipython().system(u'mv EconGraphs.py /home/alex/Documents/Projects/WAS/Code/econgraphs/__init__.py')
+'''
+!jupyter nbconvert --to script EconGraphs.ipynb
+!mv EconGraphs.py /home/alex/Documents/Projects/WAS/Code/econgraphs/__init__.py
+!rm -f EconGraphs.py
+'''
 
