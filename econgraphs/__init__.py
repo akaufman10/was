@@ -3,7 +3,7 @@
 
 # # This notebook provides the code used in the EconGraphs module.
 
-# In[10]:
+# In[1]:
 
 from __future__ import division
 
@@ -133,7 +133,7 @@ class market(object):
         
 
 
-# In[176]:
+# In[2]:
 
 #this object simulates and graphs various market scenarios
 class scenarioSimulator(object):
@@ -626,7 +626,26 @@ class scenarioSimulator(object):
         
 
 
-# In[171]:
+# In[3]:
+
+# functions for interactive graphs
+
+def buildSupplyPoints(width, height, steps):
+    supplyPoints = [(0,height)] 
+    supplyPoints.extend([(supplyPoints[0][0]+width*(i+1),supplyPoints[0][1]+height*(i+1)) for i in range(int(steps/width))])
+    return supplyPoints
+
+def makeTupples(kwargDict):
+    mixMaxRangeTupples = {}
+    for k,v in kwargDict.iteritems():
+        try:
+            mixMaxRangeTupples[k]=(v-2*v,v+2*v,v/50)
+        except TypeError:
+            continue
+    return mixMaxRangeTupples
+
+
+# In[4]:
 
 #example params
 supplyLevels           = [(1,2),(3,4),(6,7)]
@@ -642,12 +661,12 @@ springMarket = market(demandFunc(**demand_parameters), supplyFunc(springAreaSupp
 graphMaker = scenarioSimulator(Market)
 
 
-# In[172]:
+# In[5]:
 
 if __name__ == '__main__':
 
     #test graphs
-    '''
+    
     graphMaker.drawFigure(annotate=True)
     
     graphMaker.drawDemand()
@@ -670,14 +689,13 @@ if __name__ == '__main__':
     
     graphMaker.drawSupplyShift(-1)
     graphMaker.annotate()
-    '''
+    
     graphMaker.drawSupplyShift([2],[1])
     graphMaker.annotate()
 
     graphMaker.drawSupplyShift(newPoint = (3,1))
     graphMaker.annotate()
 
-    '''
     graphMaker.drawHouseholds(4)
     graphMaker.annotate()
 
@@ -707,35 +725,15 @@ if __name__ == '__main__':
 
     graphMaker.drawOptimalTradeoff(4, otherMarket = springMarket)
     graphMaker.annotate()
-    '''
+    
     
 
 
-# In[26]:
+# # Example of interactive function decorator
 
-# functions for interactive graphs
+# In[6]:
 
-def buildSupplyPoints(width, height, steps):
-    supplyPoints = [(0,height)] 
-    supplyPoints.extend([(supplyPoints[0][0]+width*(i+1),supplyPoints[0][1]+height*(i+1)) for i in range(int(steps/width))])
-    return supplyPoints
-
-def makeTupples(kwargDict):
-    mixMaxRangeTupples = {}
-    for k,v in kwargDict.iteritems():
-        try:
-            mixMaxRangeTupples[k]=(v-2*v,v+2*v,v/50)
-        except TypeError:
-            continue
-    return mixMaxRangeTupples
-
-def avoidNull(simulatorObjFunc,*args):
-    return simulatorObjFunc(*args)
-
-
-
-# In[28]:
-
+'''
 kwargDict = {
          'optimize':'True', 
          'waterSupply':4,
@@ -775,9 +773,10 @@ def compareMarketsSimple(optimize=('True','False'),waterSharePct=None,waterSuppl
     else:
         graphMaker.drawTradeoff(waterSupply,waterSharePct, otherMarket=newMarket)
 
+'''
 
 
-# In[175]:
+# In[7]:
 
 '''
 !jupyter nbconvert --to script EconGraphs.ipynb
