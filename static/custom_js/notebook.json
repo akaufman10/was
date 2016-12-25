@@ -1,0 +1,19 @@
+{
+  "zenmode_set_zenmode_on_load": true, 
+  "load_extensions": {
+    "nb_anacondacloud/main": true, 
+    "nb_conda/main": true, 
+    "jupyter-js-widgets/extension": true, 
+    "toc2/main": true, 
+    "zenmode/main": true, 
+    "collapsible_headings/main": true, 
+    "init_cell/main": true, 
+    "init_cell": true, 
+    "collapsable_headings/main": true, 
+    "nbextensions_configurator/config_menu/main": true, 
+    "hide_input_all/main": true, 
+    "nbpresent/js/nbpresent.min": true, 
+    "contrib_nbextensions_help_item/main": true
+  }, 
+  "zenmode_use_builtin_backgrounds": false
+}
