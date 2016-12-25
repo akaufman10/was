@@ -15,8 +15,7 @@ RUN jupyter nbextension enable collapsible_headings/main
 RUN jupyter nbextension enable toc2/main
 RUN jupyter nbextension enable zenmode/main
 RUN jupyter nbextension enable hide_input_all/main
-
-
+RUN mv /home/main/notebooks/static/custom_js/main.js /home/main/.local/share/jupyter/nbextensions/zenmode/main.js
 
 USER main
 
