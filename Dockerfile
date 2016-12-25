@@ -22,7 +22,6 @@ RUN jupyter nbextension enable hide_input_all/main
 RUN mv /home/main/notebooks/static/custom_js/notebook.json /home/main/.jupyter/nbconfig/notebook.json
 
 #Trust all notebooks
-RUN jupyter trust --reset
 RUN find . -name '*.ipynb' -exec jupyter trust {} \;
 
 USER main
