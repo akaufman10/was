@@ -5,10 +5,18 @@
 
 # In[1]:
 
+#this cell should be deleted to make modifications
+'''
+import warnings
+warnings.filterwarnings("ignore")
+'''
+
+
+# In[2]:
+
 from __future__ import division
 
-get_ipython().magic(u'pylab inline')
-
+get_ipython().magic(u'matplotlib inline')
 
 from scipy.integrate import quad
 from copy import copy, deepcopy
@@ -133,7 +141,7 @@ class market(object):
         
 
 
-# In[2]:
+# In[8]:
 
 #this object simulates and graphs various market scenarios
 class scenarioSimulator(object):
@@ -148,16 +156,21 @@ class scenarioSimulator(object):
                                     'alpha'    :.3,
                                     'label'    :'surplus'
                                     }
-        self.surplusAddParams = {
+        self.surplusAddParams    = {
                                     'color'  :  'blue',
                                     'alpha'  :  .3,
                                     'label'  :  'new surplus'
                                     }
-        self.surplusLossParams = {
+        self.surplusLossParams   = {
                                     'color'  :  'red',
                                     'alpha'  :  .2,
                                     'label'  :  'lost surplus'
-                                    }        
+                                    }
+        self.profitParams        = {
+                                    'color'  :  'red',
+                                    'alpha'  :  .2,
+                                    'label'  :  'profit'
+                                    }
         self.titlefont           = {
                                     'family' : 'serif',
                                     'color'  : 'black',
@@ -173,7 +186,7 @@ class scenarioSimulator(object):
         self.linesize            = {
                                     'lw'     : 2,
                                     'alpha'  : 0.6
-                                   }
+                                    }
         self.dottedline          = {
                                     'lw'     :  1,
                                     'alpha'  :  1,
@@ -296,18 +309,41 @@ class scenarioSimulator(object):
         self.supplyShiftPlot   = self.supplyShiftMarket.supplyFunc.invSupplyCurve(self.grid)
         ax.plot(self.grid, self.supplyShiftPlot, label = 'new supply', **self.linesize)
     
-    def plotSurplus(self,ax,price = None):
-        try:
-            ax.fill_between(
-                            self.grid,
-                            self.market.demandFunc.invDemandCurve(self.grid), 
-                            self.market.supplyFunc.invSupplyCurve(self.grid), 
-                            where = self.market.demandFunc.invDemandCurve(self.grid) > np.maximum(price,self.market.equilibriumP), 
-                            **self.surplusParams
-                            )
-        except AttributeError:
-            pass
-        
+    def plotSurplus(self,ax,price = None, drawProfit = None):
+        if not drawProfit:
+            try:
+                ax.fill_between(
+                                self.grid,
+                                self.market.demandFunc.invDemandCurve(self.grid), 
+                                self.market.supplyFunc.invSupplyCurve(self.grid), 
+                                where = self.market.demandFunc.invDemandCurve(self.grid) > np.maximum(price,self.market.equilibriumP), 
+                                **self.surplusParams
+                                )
+            except AttributeError:
+                pass
+        else:
+            try:
+                ax.fill_between(
+                                self.grid,
+                                [self.market.equilibriumP] * 300,
+                                self.market.supplyFunc.invSupplyCurve(self.grid), 
+                                where = self.market.demandFunc.invDemandCurve(self.grid) > np.maximum(price,self.market.equilibriumP), 
+                                **self.profitParams
+                                )
+            except AttributeError:
+                pass
+            try:
+                ax.fill_between(
+                                self.grid,
+                                self.market.demandFunc.invDemandCurve(self.grid), 
+                                [self.market.equilibriumP] * 300,
+                                where = self.market.demandFunc.invDemandCurve(self.grid) > np.maximum(price,self.market.equilibriumP), 
+                                **self.surplusParams
+                                )
+            except AttributeError:
+                pass
+
+            
     def plotSupplyChangeSurplus(self,ax,supplyShift = None):
         try:
             if supplyShift >= 0:
@@ -351,20 +387,29 @@ class scenarioSimulator(object):
             pass
 
         
-    def annotate(self):
+    def annotate(self, reset=False):
+        
+        if reset:
+            self.plotPoints = [{'equilibrium' : (self.market.equilibriumQ, self.market.equilibriumP)}, {}]
+            return
         
         #should add marginal surplus and calculate total surplus for comparisons
         for i, ax in enumerate(self.fig.axes):
             plotPoints = self.plotPoints[i]
+            eq=False
             for key,value in plotPoints.iteritems():
-                if key == 'equilibrium' or key == 'new equilibrium':
+                if key == 'equilibrium' or key == 'new equilibrium' or key == ' ':
+                    eq=True
                     ax.plot(value[0], value[1], 'or')
                     #make changes to the second tupple to move the text location
                     ax.annotate(str(key), (value[0],value[1]), (value[0]+value[0]/10,value[1]+value[0]/10) )
                     continue
                 ax.plot(value[0], value[1], **self.dottedline)
                 ax.text(value[0][-1], value[1][-1], str(key), **self.labelfont)
-        self.plotPoints = [{'equilibrium' : (self.market.equilibriumQ, self.market.equilibriumP)}, {}]
+        if eq:
+            self.plotPoints = [{'equilibrium' : (self.market.equilibriumQ, self.market.equilibriumP)}, {}]
+        else:
+            self.plotPoints = [{},{}]
                 
     def drawShadowValue(self,quantity, scarcityRent = False, annotate=False):
         
@@ -391,7 +436,7 @@ class scenarioSimulator(object):
         self.plotPoints[0]['quantity'] = (points, np.linspace(0, self.market.demandFunc.invDemand(quantity),50).tolist())
         if annotate:
             self.annotate()
-        
+
     def drawDemand(self, demandShift = None, annotate = False, subsidy = None):
         
         if subsidy:
@@ -540,6 +585,8 @@ class scenarioSimulator(object):
             self.annotate()
         
     def drawFigure(self, numPlots=1, EQ = True, **kwargs):
+        keys = [key for key, value in kwargs.iteritems()]
+
         fig, ax_array = plt.subplots(1, numPlots,figsize = (5*numPlots,5),sharey=True)
         for i,ax in enumerate(np.ravel(ax_array)):
             
@@ -564,8 +611,16 @@ class scenarioSimulator(object):
             self.drawAxes(ax, EQ=EQ, priceLevel=kwargs['price2'], plotNum = i+1, **kwargs)
             if kwargs['otherMarket'] is not None:
                 self.market = deepcopy(self.tempMarket)
+        
         self.fig=fig
-        if 'annotate' in [key for key, value in kwargs.iteritems()]:
+
+        
+        if 'drawEqLine' in keys:
+            points = [self.market.equilibriumP] * 50
+            self.plotPoints[0]['equilibrium price'] = ((np.linspace(0, self.market.equilibriumQ,50).tolist(),points))
+            self.plotPoints[0][' '] = self.plotPoints[0].pop('equilibrium')
+
+        if 'annotate' in keys:
             if kwargs['annotate'] is True:
                 self.annotate()
         
@@ -582,7 +637,7 @@ class scenarioSimulator(object):
         if 'drawSurplus' in locals():
             showSurplus = drawSurplus
         
-        for var in ['intervals','newPoint','replacePoint']:
+        for var in ['intervals','newPoint','replacePoint','drawProfit']:
             if var in locals():
                 pass
             else:
@@ -590,15 +645,17 @@ class scenarioSimulator(object):
                 
         #set up titles / markings for graph
         title = 'Supply and Demand for Water'
-        xlab = 'Quantity of Water (Mcm/capita)'
+        xlab = 'Quantity of Water ($million\ cubic\ m^3/capita$)'
         
         self.plotDemand(ax)
         if households:
             self.plotHouseholds(ax,priceLevel=priceLevel)
-            title = "Individual Household's Demand for Water"
-            xlab = 'Quantity of Water (cm)'
+            title = "Single Household's Benefit from Water"
+            xlab = 'Quantity of Water ($cubic\ m^3$)'
         else: 
-            if not noSupply:
+            if noSupply:
+                title = 'Demand for Water' + str(plotNum)
+            else:
                 self.plotSupply(ax)
         if supplyShift:
             self.plotSupplyShift(ax, plotNum = plotNum, supplyShift=supplyShift, intervals = intervals, newPoint = newPoint, replacePoint = replacePoint)
@@ -614,19 +671,18 @@ class scenarioSimulator(object):
                 if newPoint:
                     supplyShift = -1
                 self.plotSupplyChangeSurplus(ax, supplyShift=supplyShift)
-                title = 'InterRegional Water Allocation'
-                self.plotSurplus(ax, price = self.market.equilibriumP)
+                self.plotSurplus(ax, price = self.market.equilibriumP,drawProfit = drawProfit)
         
-        ax.set_title(title, fontdict=self.titlefont) 
+        ax.set_title(title, fontdict=self.titlefont)
         ax.set_xlabel(xlab, fontdict=self.labelfont)
-        ax.set_ylabel('Price ($/mcm)', fontdict=self.labelfont)
+        ax.set_ylabel('Price ($\$/million\ cubic\ m^3$)', fontdict=self.labelfont)
         ax.legend(loc='best', frameon=False, fontsize=12, markerscale=.6,ncol=2,columnspacing=.8)
         
         self.supplyShiftMarket, self.demandShiftMarket= None, None
         
 
 
-# In[3]:
+# In[4]:
 
 # functions for interactive graphs
 
@@ -645,7 +701,7 @@ def makeTupples(kwargDict):
     return mixMaxRangeTupples
 
 
-# In[4]:
+# In[5]:
 
 #example params
 supplyLevels           = [(1,2),(3,4),(6,7)]
@@ -659,74 +715,6 @@ Market = market(demandFunc(**demand_parameters), supplyFunc(supplyLevels))
 highAltMarket = market(demandFunc(**demand_parameters), supplyFunc(highlandsSupplyLevels))
 springMarket = market(demandFunc(**demand_parameters), supplyFunc(springAreaSupplyLevels))
 graphMaker = scenarioSimulator(Market)
-
-
-# In[5]:
-
-if __name__ == '__main__':
-
-    #test graphs
-    
-    graphMaker.drawFigure(annotate=True)
-    
-    graphMaker.drawDemand()
-    
-    graphMaker.drawDemand(subsidy = 3, annotate = True)
-    
-    graphMaker.drawShadowValue(2, scarcityRent=False, annotate=True)
-
-    graphMaker.drawQuantity(2.5)
-    graphMaker.annotate()
-
-    graphMaker.drawDemandShift(4)
-    graphMaker.annotate()
-    
-    graphMaker.drawDemandShift(-2)
-    graphMaker.annotate()
-    
-    graphMaker.drawSupplyShift()
-    graphMaker.annotate()
-    
-    graphMaker.drawSupplyShift(-1)
-    graphMaker.annotate()
-    
-    graphMaker.drawSupplyShift([2],[1])
-    graphMaker.annotate()
-
-    graphMaker.drawSupplyShift(newPoint = (3,1))
-    graphMaker.annotate()
-
-    graphMaker.drawHouseholds(4)
-    graphMaker.annotate()
-
-    graphMaker.drawPopulationShift(2,away=True)
-    graphMaker.annotate()
-
-    graphMaker.drawCapitalExpTradeoff(3,.4,drawEQ=True)
-    graphMaker.annotate()
-
-    graphMaker.drawCapitalExpTradeoff(1,.2,totalSupply = 4, q_split = .6, otherMarket=springMarket)
-    graphMaker.annotate()
-    
-    graphMaker.drawOptimalTradeoff(4, otherMarket=Market)
-    graphMaker.annotate()
-    
-    graphMaker.drawCapitalExpTradeoff(1, .4, totalSupply = 4, otherMarket = springMarket, optimize=True)
-    graphMaker.annotate()
-
-    graphMaker.drawFigure(drawSurplus = False)
-    graphMaker.annotate()
-    
-    graphMaker.drawTradeoff(4,.4)
-    graphMaker.annotate()
-    
-    graphMaker.drawShifts()
-    graphMaker.annotate()
-
-    graphMaker.drawOptimalTradeoff(4, otherMarket = springMarket)
-    graphMaker.annotate()
-    
-    
 
 
 # # Example of interactive function decorator
@@ -773,14 +761,5 @@ def compareMarketsSimple(optimize=('True','False'),waterSharePct=None,waterSuppl
     else:
         graphMaker.drawTradeoff(waterSupply,waterSharePct, otherMarket=newMarket)
 
-'''
-
-
-# In[7]:
-
-'''
-!jupyter nbconvert --to script EconGraphs.ipynb
-!mv EconGraphs.py /home/alex/Documents/Projects/WAS/Code/econgraphs/__init__.py
-!rm -f EconGraphs.py
 '''
 
