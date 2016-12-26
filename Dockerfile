@@ -14,7 +14,7 @@ RUN pip install jupyter_contrib_nbextensions
 RUN pip install -I --upgrade setuptools
 RUN pip install --upgrade ipywidgets
 
-USER Main
+USER main
 
 #Install the Jupyter Notebook Extensions
 RUN jupyter contrib nbextension install --user
