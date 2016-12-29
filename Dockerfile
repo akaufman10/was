@@ -10,9 +10,6 @@ RUN apt-get install -y python python-dev python-distribute python-pip
 RUN pip install hide_code
 RUN pip install jupyter_contrib_nbextensions
 
-#updrade ipywidgets
-RUN pip install -I --upgrade setuptools
-RUN pip install --upgrade ipywidgets
 
 USER main
 
