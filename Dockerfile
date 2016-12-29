@@ -23,7 +23,7 @@ RUN jupyter nbextension enable zenmode/main
 RUN jupyter nbextension enable hide_input_all/main
 
 #Replace the Jupyter Notebook 'Configurator' json data to enable zen mode at activation
-RUN mv /home/main/notebooks/static/custom_js/notebook.json /home/main/.jupyter/nbconfig/notebook.json
+#RUN mv /home/main/notebooks/static/custom_js/notebook.json /home/main/.jupyter/nbconfig/notebook.json
 
 
 #Trust all notebooks
