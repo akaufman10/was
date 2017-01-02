@@ -20,7 +20,8 @@ from fileFunctions import *
 from fileParams import *
 
 
-def findScenariosIn(filepath = WAS_scenario_directory):
+
+def findScenariosIn(filepath = os.):
     '''
     search a given filepath for subdirectories and return their location/name
     retruns a list of tupples (folderPath, folderName)
@@ -31,6 +32,8 @@ def findScenariosIn(filepath = WAS_scenario_directory):
     paths = [(i[0]) for i in os.walk(filepath)]
     names = [(i[1]) for i in os.walk(filepath)]
     scenarios = zip(paths[1:],names[0])
+    if scenarios == []:  
+        scenarios.append(('./',os.path.relpath(".","..")))
     return scenarios
 
 def makeFileList(metaFile):
@@ -79,12 +82,12 @@ def stripFileData(filesToUse,fileList,scenarios,database,dataDirectory):
                     exec('%s.appendTables(appendTableNames=%s_appendTablenames,newTableName = %s_newTablename)' % (value[4:],key,key))
                 except NameError:
                     pass
+                exec('%s.writeData(sql = False)' % (value[4:]))
                 os.chdir(data_directory)
-                exec('%s.writeData(database = conn)' % (value[4:]))
-                print('processed file: ' + value)
+                exec('%s.writeData(database = conn)' % (value[4:]))       
                 os.chdir(scenario[0])
-                
-                
+
+
 os.chdir(data_directory)
 conn = sqlite3.connect(databaseName+".db")
 scenarios = findScenariosIn()
