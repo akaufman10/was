@@ -18,10 +18,11 @@ RUN jupyter nbextension enable toc2/main
 RUN jupyter nbextension enable zenmode/main
 RUN jupyter nbextension enable hide_input_all/main
 
-USer main
+USER main
 
 #Trust all notebooks
 RUN find . -name '*.ipynb' -exec jupyter trust {} \;
+
 
 
 
