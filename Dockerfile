@@ -12,7 +12,6 @@ RUN pip install jupyter_contrib_nbextensions
 
 #Install the Jupyter Notebook Extensions
 RUN jupyter contrib nbextension install --user
-RUN jupyter nbextension enable --py --sys-prefix widgetsnbextension
 RUN jupyter nbextension enable init_cell/main
 RUN jupyter nbextension enable collapsible_headings/main
 RUN jupyter nbextension enable toc2/main
