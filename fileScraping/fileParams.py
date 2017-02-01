@@ -7,10 +7,6 @@ Created on Tue Oct 18 23:39:49 2016
 from copy import copy
     
 
-WAS_scenario_directory = '/home/alex/Documents/Shared/WAS & MYWAS/WAS_scenarios'
-data_directory = '/home/alex/Documents/Shared/WAS_&_MYWAS/Data'
-code_directory = '/home/alex/Projects/WAS/Code/fileScraping'
-
 databaseName = 'ScenarioData'
 
 filesToCapture = ['OUT0', 'OUT1', 'OUT2','OUT3','OUT4','OUT5','OUT6','OUT7','OUT8','OUT9']

@@ -4,11 +4,14 @@ Created on Wed Dec 28 16:55:20 2016
 
 @author: alex
 """
+import base64
 
-def makeXML():
-    with open('in.gdx', 'r') as myfile:
-        gdx=myfile.read().replace('\n', '')
-    xml = '''
+with open('in.gdx', 'rb') as myfile:
+    gdx=myfile.read()
+result = base64.b64encode(gdx).decode('ascii')
+
+
+xml = '''
     <document>
 <category>nco</category>
 <solver>MINOS</solver>
@@ -522,14 +525,15 @@ modelstat = was.modelstat;]]></model>
 
 <options><![CDATA[]]></options>
 
-<gdx>%s</gdx>
+<gdx><base64>%s</base64></gdx>
 
 <wantgdx><![CDATA[yes]]></wantgdx>
 
 <comments><![CDATA[]]></comments>
 
 </document>
-    ''' % (gdx)
-    with open("WAS.xml", "w") as f:
-        f.write(xml)
-        f.close()
+    ''' % (result)
+    
+with open("WAS.xml", "w") as f:
+    f.write(xml)
+f.close()    

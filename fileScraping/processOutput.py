@@ -12,29 +12,40 @@ import numpy as np
 import re
 import weakref
 import os
+import sys
+from os import listdir
+from os.path import isfile, join
 
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 os.chdir(dname)
+data_directory = dname +'/Data'
 from fileFunctions import *
 from fileParams import *
 
 
-
-def findScenariosIn(filepath = os.):
+#get a list of all the folders in the current directory
+def findScenarios(filepath = dname):
     '''
     search a given filepath for subdirectories and return their location/name
     retruns a list of tupples (folderPath, folderName)
-    assumes that 
+    assumes that
         1) all folders are scenario folders
         2) all scenario folders have no subdirectories 
     '''
-    paths = [(i[0]) for i in os.walk(filepath)]
-    names = [(i[1]) for i in os.walk(filepath)]
-    scenarios = zip(paths[1:],names[0])
-    if scenarios == []:  
-        scenarios.append(('./',os.path.relpath(".","..")))
+    removeFiles = ['Help','JOR2020','saved','Data','Saved_temp','excel',
+                   'DLLs','Doc','include','Lib','libs','Logs','Scripts',
+                    'share','tcl','tools','GAMS23.5','225a','225b',
+		    'License','man']
+    
+    scenarios = [f for f in listdir(os.getcwd()) if not isfile(join(os.getcwd(),f))]
+    
+    for i, scn in enumerate(scenarios):
+        if scn in removeFiles:
+            scenarios.pop(i) #remove folders that do not contain scenario data
+
     return scenarios
+
 
 def makeFileList(metaFile):
     '''
@@ -42,6 +53,7 @@ def makeFileList(metaFile):
     key: GAMS file object
     value : the name output file  
     '''
+
     with open(metaFile) as f:
         fileList = []    
         for line in f:
@@ -53,11 +65,18 @@ def makeFileList(metaFile):
 
 
 def stripFileData(filesToUse,fileList,scenarios,database,dataDirectory):
-
+    directory = os.getcwd()
     for scenario in scenarios:
-        scenarioName = scenario[1]
-        print('now collecting data for scenario: ' + scenarioName)
-        os.chdir(scenario[0])
+        scenarioName = scenario
+        scenarioPath = directory + "/" + scenarioName
+        os.chdir(scenarioPath)
+        
+        if not os.path.exists('unprocessed.txt'):
+
+            continue
+        else:
+            os.remove('unprocessed.txt')
+
         for key, value in fileList.iteritems():
             if key in filesToUse:
                 try:                    
@@ -82,15 +101,15 @@ def stripFileData(filesToUse,fileList,scenarios,database,dataDirectory):
                     exec('%s.appendTables(appendTableNames=%s_appendTablenames,newTableName = %s_newTablename)' % (value[4:],key,key))
                 except NameError:
                     pass
-                exec('%s.writeData(sql = False)' % (value[4:]))
-                os.chdir(data_directory)
                 exec('%s.writeData(database = conn)' % (value[4:]))       
-                os.chdir(scenario[0])
 
-
-os.chdir(data_directory)
+try:
+    os.chdir(data_directory)
+except:
+    os.makedirs(data_directory)
 conn = sqlite3.connect(databaseName+".db")
-scenarios = findScenariosIn()
+os.chdir(dname)
+scenarios = findScenarios()
 stripFileData(filesToCapture,fileList,scenarios,conn,data_directory)
 conn.close()
 

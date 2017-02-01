@@ -141,7 +141,7 @@ class market(object):
         
 
 
-# In[8]:
+# In[3]:
 
 #this object simulates and graphs various market scenarios
 class scenarioSimulator(object):
@@ -306,7 +306,7 @@ class scenarioSimulator(object):
             self.supplyShiftMarket.supplyFunc.interval_points = [(i,j+supplyShift) for i,j in self.market.supplyFunc.interval_points] 
         self.supplyShiftMarket.findEQ()
         self.plotPoints[plotNum - 1]['new equilibrium'] = ((self.supplyShiftMarket.equilibriumQ, self.supplyShiftMarket.equilibriumP))
-        self.supplyShiftPlot   = self.supplyShiftMarket.supplyFunc.invSupplyCurve(self.grid)
+        self.supplyShiftPlot = self.supplyShiftMarket.supplyFunc.invSupplyCurve(self.grid)
         ax.plot(self.grid, self.supplyShiftPlot, label = 'new supply', **self.linesize)
     
     def plotSurplus(self,ax,price = None, drawProfit = None):
@@ -386,7 +386,15 @@ class scenarioSimulator(object):
         except AttributeError:
             pass
 
+    def drawSetAside(self,setaside = None):
         
+        quantity = self.market.equilibriumQ - setaside
+        self.drawFigure(priceLevel = self.market.demandFunc.invDemand(quantity),EQ=False)
+        points = [quantity] * 50
+        self.plotPoints[0]['supply after setaside'] = (points, np.linspace(0, self.market.demandFunc.invDemand(quantity),50).tolist())
+        if annotate:
+            self.annotate()
+    
     def annotate(self, reset=False):
         
         if reset:
@@ -473,6 +481,14 @@ class scenarioSimulator(object):
         else:
             self.drawFigure(supplyShift=shift,intervals = None)
         
+    def drawSetAside(self,setaside = None,annotate=False):
+        
+        quantLev = self.market.equilibriumQ - setaside
+        self.drawFigure(priceLevel = self.market.demandFunc.invDemand(quantLev),EQ=False)
+        points = [quantLev] * 50
+        self.plotPoints[0]['supply after setaside'] = (points, np.linspace(0, self.market.demandFunc.invDemand(quantLev),50).tolist())
+        if annotate:
+            self.annotate()
     
     def drawDemandShift(self,shift=1):
         
@@ -669,7 +685,7 @@ class scenarioSimulator(object):
             else:
                 self.plotDemandChangeSurplus(ax, demandShift=demandShift)
                 if newPoint:
-                    supplyShift = -1
+                    supplyShift = -newPoint[1]
                 self.plotSupplyChangeSurplus(ax, supplyShift=supplyShift)
                 self.plotSurplus(ax, price = self.market.equilibriumP,drawProfit = drawProfit)
         
